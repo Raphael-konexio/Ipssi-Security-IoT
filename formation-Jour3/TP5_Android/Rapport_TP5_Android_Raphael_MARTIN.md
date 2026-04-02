@@ -29,6 +29,10 @@ Bypass de création AVD : Face à une défaillance silencieuse de l'outil avdman
 
 Contournement de la virtualisation imbriquée : L'hyperviseur hébergeant la machine d'audit Kali Linux bloquant les instructions KVM (VT-x/AMD-V), l'émulateur a été basculé en mode d'exécution logiciel (-accel off). Cela permet de maintenir l'analyse dynamique au prix d'une dégradation des performances d'émulation.
 
+4. Validation du Flag 1 (Login)
+L'analyse statique du fichier FlagOneLoginActivity.java a révélé la présence d'un mot de passe codé en dur dans le code source (F1ag_0n3).
+Une tentative d'instrumentation dynamique avec Frida a été mise en place pour intercepter la fonction submitFlag(View view). Bien que la fonction attende un objet View et lise le champ texte dynamiquement, le framework Frida s'est attaché avec succès au processus (b3nac.injuredandroid). La validation finale a été réalisée en insérant le secret découvert directement dans l'interface, déverrouillant ainsi le premier drapeau
+
 
 emulator -avd Pixel_4_API_30 & adb install InjuredAndroid.apk
 
@@ -64,5 +68,21 @@ EOF
 
 export ANDROID_SDK_ROOT=/usr/lib/android-sdk
 /usr/lib/android-sdk/emulator/emulator -avd Pixel_4_API_30 -no-snapshot -gpu swiftshader_indirect -no-audio -no-boot-anim -accel off &
+
+wget https://github.com/frida/frida/releases/download/17.9.1/frida-server-17.9.1-android-x86_64.xz
+unxz frida-server-17.9.1-android-x86_64.xz
+mv frida-server-17.9.1-android-x86_64 frida-server-17
+
+adb root
+
+adb shell 'killall frida-server'
+adb shell 'rm /data/local/tmp/frida-server'
+
+adb push frida-server-17 /data/local/tmp/frida-server
+adb shell 'chmod 755 /data/local/tmp/frida-server'
+adb shell '/data/local/tmp/frida-server &'
+
+frida -U -l hook_flag.js -f b3nac.injuredandroid
+
 
 
